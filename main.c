@@ -1,4 +1,5 @@
 #include "iostm8s105k4.h"
+#include "CQueue.h"
 #include <stdbool.h>
 
 #define P_ENLEFT    PD_IDR_IDR5
@@ -35,24 +36,28 @@ enum
   FRST,
   SCND
 } enstate = WAIT;
-enum
+typedef enum
 {
   STBY = 0,
   LEFT,
   RGHT,
   PUSH,
   TIMR
-} event = STBY;
+} event_t;
 
+
+
+//GLOBALS
 unsigned char ledstate = 0x8;
-int step = SPDMIN;
+unsigned char step = SPDMIN;
+CQueue evbuff;
 
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
 {
   if (!P_ENPUSH)
   {  
-    event = PUSH;
+    CQueuePush(&evbuff, PUSH);
     enstate = WAIT;
     return;
   }
@@ -67,14 +72,14 @@ __interrupt void PinHundler(void)
   case FRST:
     if (!P_ENLEFT && !P_ENRGHT)
     {
-      event = RGHT;
+      CQueuePush(&evbuff, RGHT);
       enstate = WAIT;
     }
     break;
   case SCND:
     if (!P_ENLEFT && !P_ENRGHT)
     {
-      event = LEFT;
+      CQueuePush(&evbuff, LEFT);
       enstate = WAIT;
     }
     break;
@@ -93,7 +98,7 @@ __interrupt void Timer4Hundler(void)
   if (counter >= GOAL)
   {
     counter = 0;
-    event = TIMR;
+    CQueuePush(&evbuff, TIMR);
   }
   return;
 }
@@ -136,30 +141,29 @@ typedef void(*action_t)(void);
 int main(void)
 {
   IOInit();
+  CQueueInit(&evbuff, 10);
+  
   action_t action = forward;  
   while (1)
   {
+    event_t event = (event_t)CQueuePop(&evbuff, STBY);
     switch (event)
     {
     case STBY:
       P_LED = ledstate;
       break;
     case LEFT:
-      event = STBY;
       step--;
       step = step < SPDMIN ? SPDMIN : step;      
       break;
     case RGHT:
-      event = STBY;
       step++;
       step = step > SPDMAX ? SPDMAX : step;
       break;
     case PUSH:
-      event = STBY;
       action = action == forward ? backward : forward;
       break;
     case TIMR:
-      event = STBY;
       action();
       break;
     }

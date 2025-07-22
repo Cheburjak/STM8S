@@ -606,7 +606,7 @@
                 </option>
                 <option>
                     <name>IlinkIcfFile</name>
-                    <state>$TOOLKIT_DIR$\config\lnkstm8.icf</state>
+                    <state>$TOOLKIT_DIR$\config\lnkstm8s105k4.icf</state>
                 </option>
                 <option>
                     <name>IlinkIcfFileSlave</name>
@@ -1635,6 +1635,12 @@
             <data />
         </settings>
     </configuration>
+    <file>
+        <name>$PROJ_DIR$\CQueue.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\CQueue.h</name>
+    </file>
     <file>
         <name>$PROJ_DIR$\main.c</name>
     </file>
