@@ -26,10 +26,12 @@
 #define M_LED_3     (0x1 << 6)
 #define M_LED_4     (0x1 << 7)
 
-#define SPDMAX  48
-#define SPDMIN  3
-#define GOAL    0xFF
-
+enum
+{
+  START = 0, 
+  ST1, 
+  ST2
+} pstate = START;
 enum
 {
   WAIT = 0,
@@ -42,15 +44,31 @@ typedef enum
   LEFT,
   RGHT,
   PUSH,
-  TIMR
+  TTCK
 } event_t;
+typedef void(*action_t)(void);
 
 
+void program1();
+void program2();
+void program3();
+void program4();
+void program5();
 
 //GLOBALS
-unsigned char ledstate = 0x8;
-unsigned char step = SPDMIN;
+#define PROGRAMS    5
+#define SPDMAX      64
+#define SPDMIN      3
+#define GOAL        0xFF
+#define LSTART      0x8
+#define LEND        0x80
+
 CQueue evbuff;
+unsigned char ledstate = LSTART;
+unsigned char step = SPDMIN;
+unsigned char curr = 0;
+action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
+
 
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
@@ -98,21 +116,11 @@ __interrupt void Timer4Hundler(void)
   if (counter >= GOAL)
   {
     counter = 0;
-    CQueuePush(&evbuff, TIMR);
+    CQueuePush(&evbuff, TTCK);
   }
   return;
 }
-
-void forward()
-{
-  ledstate = ledstate < 0x80 ? ledstate << 1 : 0x8;
-}
-
-void backward()
-{
-  ledstate = ledstate > 0x8 ? ledstate >> 1 : 0x80;
-}
-
+  
 void IOInit()
 {
   //! LED
@@ -136,37 +144,144 @@ void IOInit()
 
   asm("rim");
 }
-typedef void(*action_t)(void);
 
 int main(void)
 {
   IOInit();
-  CQueueInit(&evbuff, 10);
-  
-  action_t action = forward;  
+  CQueueInit(&evbuff, 10); 
+ 
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, STBY);
     switch (event)
     {
     case STBY:
-      P_LED = ledstate;
+      P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4);
       break;
     case LEFT:
-      step--;
+      step-=2;
       step = step < SPDMIN ? SPDMIN : step;      
       break;
     case RGHT:
-      step++;
+      step+=2;
       step = step > SPDMAX ? SPDMAX : step;
       break;
     case PUSH:
-      action = action == forward ? backward : forward;
+      curr = (curr+1) % PROGRAMS;
+      pstate = START;   
       break;
-    case TIMR:
-      action();
+    case TTCK:
+      actions[curr]();
       break;
     }
-    
   }
+}
+
+void program1()
+{
+  switch(pstate)
+  {
+  case START:
+    ledstate = LSTART;
+    pstate = ST1;
+    break;
+  case ST1:
+    if (ledstate < LEND)
+        ledstate = ledstate << 1;
+    else
+        pstate = START;
+    break;
+  }
+}
+
+void program2()
+{
+  switch(pstate)
+  {
+  case START:
+    ledstate = LEND;
+    pstate = ST1;
+    break;
+  case ST1:
+    if (ledstate > LSTART)
+      ledstate =  ledstate >> 1;
+    else
+      pstate = START;
+    break;
+  }
+}
+
+void program3()
+{
+  switch(pstate)
+  {
+  case START:
+    ledstate = LSTART;
+    pstate = ST1;
+    break;
+  case ST1:
+    if (ledstate < LEND)
+      ledstate |= ledstate << 1;
+    else
+      pstate = ST2;
+    break;
+  case ST2:
+    if (ledstate > 0)
+      ledstate &= ledstate - 1;
+    else
+      pstate = START;
+    break;
+  }
+}
+
+void program4()
+{
+    switch(pstate)
+    {
+    case START:
+      ledstate = LEND;
+      pstate = ST1;
+      break;  
+    case ST1:
+      if (ledstate < 0xF8)
+        ledstate |= ledstate >> 1;
+      else
+        pstate = ST2;
+      break;
+    case ST2:
+      if (ledstate >= LSTART)
+        ledstate &= ledstate >> 1;
+      else
+        pstate = START;
+      break;
+    }
+}
+
+void program5()
+{
+    static unsigned char st = 0;
+    switch(st)
+    {
+    case 0:
+      program1();
+      if (pstate == START)
+        st = 1;
+        return;
+    break;
+    case 1:
+      program2();
+      if (pstate == START)
+        st = 2;
+    break;
+    case 2:
+      program3();
+      if (pstate == START)
+        st = 3;
+      break;
+    case 3:
+      program4();
+      if (pstate == START)
+        st = 0;
+      break;
+    } 
 }
