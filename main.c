@@ -47,9 +47,14 @@ typedef enum
   EV_RGHT,
   EV_PUSH,
   EV_TTCK,
-  EV_STRT,
-  EV_STOP
+  EV_LONG,
 } event_t;
+
+typedef enum
+{
+  WORK = 0,
+  WAIT
+} state_t;
 
 typedef void(*action_t)(void);
 
@@ -66,9 +71,11 @@ void program5();
 #define GOAL        0xFF
 #define LSTART      0x8
 #define LEND        0x80
+#define PUSHWAITING 0x50
 
 CQueue evbuff;
-unsigned char ledstate = LSTART;
+state_t mstate = WAIT;
+unsigned char ledstate = 0;
 unsigned char step = SPDMIN;
 unsigned char curr = 0;
 action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
@@ -113,10 +120,17 @@ __interrupt void PinHundler(void)
 __interrupt void Timer4Hundler(void)
 {
   static int counter = 0;
+  static int lcounter = 0;
   TIM4_SR &= ~(1 << 0);
-
+  
+  lcounter = P_ENPUSH ? 0 : lcounter + 1;
+  if (lcounter >= PUSHWAITING)
+  {
+    lcounter = 0;
+    CQueuePush(&evbuff, EV_LONG);
+  }
+  
   counter += step;
-
   if (counter >= GOAL)
   {
     counter = 0;
@@ -152,32 +166,57 @@ void IOInit()
 int main(void)
 {
   IOInit();
-  CQueueInit(&evbuff, 10); 
- 
+  CQueueInit(&evbuff, 10);  
+  
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
-    switch (event)
+    switch (mstate)
     {
-    case EV_NONE:
-      P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4);
+    case WAIT:
+      switch(event)
+      {
+      case EV_LONG:
+        mstate = WORK;
+        ledstate = LSTART;
+
+        break;
+      default:
+        break;
+      }
       break;
-    case EV_LEFT:
-      step-=2;
-      step = step < SPDMIN ? SPDMIN : step;      
-      break;
-    case EV_RGHT:
-      step+=2;
-      step = step > SPDMAX ? SPDMAX : step;
-      break;
-    case EV_PUSH:
-      curr = (curr+1) % PROGRAMS;
-      pstate = PM_ST0;   
-      break;
-    case EV_TTCK:
-      actions[curr]();
+    case WORK:
+      switch (event)
+      {
+      case EV_NONE:
+        P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4);
+        break;
+      case EV_LEFT:
+        step-=2;
+        step = step < SPDMIN ? SPDMIN : step;      
+        break;
+      case EV_RGHT:
+        step+=2;
+        step = step > SPDMAX ? SPDMAX : step;
+        break;
+      case EV_PUSH:
+        curr = (curr+1) % PROGRAMS;
+        pstate = PM_ST0;   
+        break;
+      case EV_TTCK:
+        actions[curr]();
+        break;
+      case EV_LONG:
+        mstate = WAIT;
+        ledstate = 0;
+        P_LED = ledstate;
+        break;
+      default:
+        break;
+      }
       break;
     }
+    
   }
 }
 
