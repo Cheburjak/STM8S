@@ -28,26 +28,30 @@
 
 enum
 {
-  START = 0, 
-  ST1, 
-  ST2
-} pstate = START;
+  PM_ST0 = 0, 
+  PM_ST1, 
+  PM_ST2
+} pstate = PM_ST0;
+
 enum
 {
-  WAIT = 0,
-  FRST,
-  SCND
-} enstate = WAIT;
+  EN_WAIT = 0,
+  EN_FRST,
+  EN_SCND
+} enstate = EN_WAIT;
+
 typedef enum
 {
-  STBY = 0,
-  LEFT,
-  RGHT,
-  PUSH,
-  TTCK
+  EV_NONE = 0,
+  EV_LEFT,
+  EV_RGHT,
+  EV_PUSH,
+  EV_TTCK,
+  EV_STRT,
+  EV_STOP
 } event_t;
-typedef void(*action_t)(void);
 
+typedef void(*action_t)(void);
 
 void program1();
 void program2();
@@ -73,32 +77,32 @@ action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
 {
-  if (!P_ENPUSH)
+  if (!P_ENPUSH && P_ENRGHT && P_ENLEFT)
   {  
-    CQueuePush(&evbuff, PUSH);
-    enstate = WAIT;
+    CQueuePush(&evbuff, EV_PUSH);
+    enstate = EN_WAIT;
     return;
   }
   switch (enstate)
   {
-  case WAIT:
+  case EN_WAIT:
     if (!P_ENRGHT && P_ENLEFT)
-      enstate = FRST;
+      enstate = EN_FRST;
     else if (!P_ENLEFT && P_ENRGHT)
-      enstate = SCND;
+      enstate = EN_SCND;
     break;
-  case FRST:
+  case EN_FRST:
     if (!P_ENLEFT && !P_ENRGHT)
     {
-      CQueuePush(&evbuff, RGHT);
-      enstate = WAIT;
+      CQueuePush(&evbuff, EV_RGHT);
+      enstate = EN_WAIT;
     }
     break;
-  case SCND:
+  case EN_SCND:
     if (!P_ENLEFT && !P_ENRGHT)
     {
-      CQueuePush(&evbuff, LEFT);
-      enstate = WAIT;
+      CQueuePush(&evbuff, EV_LEFT);
+      enstate = EN_WAIT;
     }
     break;
   }
@@ -116,7 +120,7 @@ __interrupt void Timer4Hundler(void)
   if (counter >= GOAL)
   {
     counter = 0;
-    CQueuePush(&evbuff, TTCK);
+    CQueuePush(&evbuff, EV_TTCK);
   }
   return;
 }
@@ -152,25 +156,25 @@ int main(void)
  
   while (1)
   {
-    event_t event = (event_t)CQueuePop(&evbuff, STBY);
+    event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
     switch (event)
     {
-    case STBY:
+    case EV_NONE:
       P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4);
       break;
-    case LEFT:
+    case EV_LEFT:
       step-=2;
       step = step < SPDMIN ? SPDMIN : step;      
       break;
-    case RGHT:
+    case EV_RGHT:
       step+=2;
       step = step > SPDMAX ? SPDMAX : step;
       break;
-    case PUSH:
+    case EV_PUSH:
       curr = (curr+1) % PROGRAMS;
-      pstate = START;   
+      pstate = PM_ST0;   
       break;
-    case TTCK:
+    case EV_TTCK:
       actions[curr]();
       break;
     }
@@ -181,15 +185,15 @@ void program1()
 {
   switch(pstate)
   {
-  case START:
+  case PM_ST0:
     ledstate = LSTART;
-    pstate = ST1;
+    pstate = PM_ST1;
     break;
-  case ST1:
+  case PM_ST1:
     if (ledstate < LEND)
         ledstate = ledstate << 1;
     else
-        pstate = START;
+        pstate = PM_ST0;
     break;
   }
 }
@@ -198,15 +202,15 @@ void program2()
 {
   switch(pstate)
   {
-  case START:
+  case PM_ST0:
     ledstate = LEND;
-    pstate = ST1;
+    pstate = PM_ST1;
     break;
-  case ST1:
+  case PM_ST1:
     if (ledstate > LSTART)
       ledstate =  ledstate >> 1;
     else
-      pstate = START;
+      pstate = PM_ST0;
     break;
   }
 }
@@ -215,21 +219,21 @@ void program3()
 {
   switch(pstate)
   {
-  case START:
+  case PM_ST0:
     ledstate = LSTART;
-    pstate = ST1;
+    pstate = PM_ST1;
     break;
-  case ST1:
+  case PM_ST1:
     if (ledstate < LEND)
       ledstate |= ledstate << 1;
     else
-      pstate = ST2;
+      pstate = PM_ST2;
     break;
-  case ST2:
+  case PM_ST2:
     if (ledstate > 0)
       ledstate &= ledstate - 1;
     else
-      pstate = START;
+      pstate = PM_ST0;
     break;
   }
 }
@@ -238,21 +242,21 @@ void program4()
 {
     switch(pstate)
     {
-    case START:
+    case PM_ST0:
       ledstate = LEND;
-      pstate = ST1;
+      pstate = PM_ST1;
       break;  
-    case ST1:
+    case PM_ST1:
       if (ledstate < 0xF8)
         ledstate |= ledstate >> 1;
       else
-        pstate = ST2;
+        pstate = PM_ST2;
       break;
-    case ST2:
+    case PM_ST2:
       if (ledstate >= LSTART)
         ledstate &= ledstate >> 1;
       else
-        pstate = START;
+        pstate = PM_ST0;
       break;
     }
 }
@@ -264,23 +268,23 @@ void program5()
     {
     case 0:
       program1();
-      if (pstate == START)
+      if (pstate == PM_ST0)
         st = 1;
         return;
     break;
     case 1:
       program2();
-      if (pstate == START)
+      if (pstate == PM_ST0)
         st = 2;
     break;
     case 2:
       program3();
-      if (pstate == START)
+      if (pstate == PM_ST0)
         st = 3;
       break;
     case 3:
       program4();
-      if (pstate == START)
+      if (pstate == PM_ST0)
         st = 0;
       break;
     } 
