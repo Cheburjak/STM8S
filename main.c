@@ -56,35 +56,33 @@ typedef enum
   WAIT
 } state_t;
 
-typedef void(*action_t)(void);
-
-void program1();
-void program2();
-void program3();
-void program4();
-void program5();
-
 //GLOBALS
 #define PROGRAMS    5
-#define SPDMAX      64
+#define SPDMAX      96
 #define SPDMIN      3
 #define GOAL        0xFF
 #define LSTART      0x8
 #define LEND        0x80
-#define PUSHWAITING 0x50
+#define PUSHWAITING 0x64
 
 CQueue evbuff;
 state_t mstate = WAIT;
 unsigned char ledstate = 0;
 unsigned char step = SPDMIN;
 unsigned char curr = 0;
-action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
 
+typedef void(*action_t)(void);
+void program1();
+void program2();
+void program3();
+void program4();
+void program5();
+action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
 
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
 {
-  if (!P_ENPUSH && P_ENRGHT && P_ENLEFT)
+  if (!P_ENPUSH)
   {  
     CQueuePush(&evbuff, EV_PUSH);
     enstate = EN_WAIT;
@@ -141,11 +139,11 @@ __interrupt void Timer4Hundler(void)
   
 void IOInit()
 {
-  //! LED
+  // LED
   P_LED_DDR |= M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4;
   P_LED_CR1 |= M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4;
   
-  //! ENCODER
+  // ENCODER
   // PIN MODE
   PD_CR1 |= M_ENLEFT | M_ENRGHT | M_ENPUSH;
   // INTERRUPTS
@@ -153,7 +151,7 @@ void IOInit()
   // INTERRUPT SENSITIVETY
   EXTI_CR1 |= (1 << 7);
 
-  //!TIMER TIM4
+  // TIMER TIM4
   TIM4_PSCR = 0x7;
   TIM4_ARR = 255;
   TIM4_CNTR = 1;
@@ -164,7 +162,7 @@ void IOInit()
 }
 
 int main(void)
-{
+{ 
   IOInit();
   CQueueInit(&evbuff, 10);  
   
@@ -179,7 +177,7 @@ int main(void)
       case EV_LONG:
         mstate = WORK;
         ledstate = LSTART;
-
+        CQueueInit(&evbuff, 10); 
         break;
       default:
         break;
@@ -189,7 +187,7 @@ int main(void)
       switch (event)
       {
       case EV_NONE:
-        P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4);
+        P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4); //FIXME: make for only 5 pins
         break;
       case EV_LEFT:
         step-=2;
