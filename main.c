@@ -4,18 +4,6 @@
 #include "CQueue.h"
 #include <stdbool.h>
 
-unsigned char prog1[] = {1,2,4,8,16,32,64,128};
-unsigned char prog2[] = {128,64,32,16,8,4,2,1};
-unsigned char prog3[] = {1,3,7,15,31,63,127,255};
-unsigned char prog4[] = {255,127,63,31,15,7,3,1};
-unsigned char prog5[] = {
-      1,2,4,8,16,32,64,128,
-      128,64,32,16,8,4,2,1,
-      1,3,7,15,31,63,127,255,
-      255,127,63,31,15,7,3,1
-};
-
-
 #define ENLEFT      PRB(ENCR_LEFT_PORT, IDR, ENCR_LEFT_BIT) 
 #define ENRGHT      PRB(ENCR_RGHT_PORT, IDR, ENCR_RGHT_BIT)  
 #define ENPUSH      PRB(ENCR_PUSH_PORT, IDR, ENCR_PUSH_BIT)  
@@ -26,12 +14,30 @@ unsigned char prog5[] = {
 #define LED3        PRB(LED4_PORT, ODR, LED4_BIT)
 #define LED4        PRB(LED5_PORT, ODR, LED5_BIT)
 
-enum
-{
-  PM_ST0 = 0, 
-  PM_ST1, 
-  PM_ST2
-} pstate = PM_ST0;
+unsigned char prog1[] = {1,2,4,8,16,32,64,128};
+unsigned char prog2[] = {128,64,32,16,8,4,2,1};
+unsigned char prog3[] = {1,3,7,15,31,63,127,255,0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0};
+unsigned char prog4[] = {255,127,63,31,15,7,3,1, 3, 7, 15, 31, 63, 127, 255, 0};
+unsigned char prog5[] = {
+      1,2,4,8,16,32,64,128,
+      128,64,32,16,8,4,2,1,
+      1,3,7,15,31,63,127,255,
+      255,127,63,31,15,7,3,1
+};
+
+#define countof(x) (sizeof(x) / sizeof(x[0]))
+struct{
+  unsigned char* arr;
+  unsigned char size;
+} progs[] = {
+  {prog1, countof(prog1)},
+  {prog2, countof(prog2)},
+  {prog3, countof(prog3)},
+  {prog4, countof(prog4)},
+  {prog5, countof(prog5)}, 
+};
+unsigned char idx = 0;
+unsigned char curr = 0;
 
 enum
 {
@@ -57,7 +63,6 @@ typedef enum
 } state_t;
 
 //GLOBALS
-#define PROGRAMS    5
 #define SPDMAX      96
 #define SPDMIN      3
 #define GOAL        0xFF
@@ -69,15 +74,7 @@ CQueue evbuff;
 state_t mstate = WAIT;
 unsigned char ledstate = 0;
 unsigned char step = SPDMIN;
-unsigned char curr = 0;
 
-typedef void(*action_t)(void);
-void program1();
-void program2();
-void program3();
-void program4();
-void program5();
-action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
 
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
@@ -169,7 +166,6 @@ void IOInit()
   TIM4_CNTR = 1;
   TIM4_IER |= 1;
   TIM4_CR1 |= 1;
-
   asm("rim");
 }
 
@@ -187,7 +183,6 @@ int main(void)
 { 
   IOInit();
   CQueueInit(&evbuff, 10);  
-  
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
@@ -220,11 +215,12 @@ int main(void)
         step = step > SPDMAX ? SPDMAX : step;
         break;
       case EV_PUSH:
-        curr = (curr+1) % PROGRAMS;
-        pstate = PM_ST0;   
+        curr = (curr+1) % countof(progs);
+        idx = 0;
         break;
       case EV_TTCK:
-        actions[curr]();
+        ledstate = progs[curr].arr[idx];
+        idx = (idx + 1) % progs[curr].size;
         break;
       case EV_LONG:
         mstate = WAIT;
@@ -240,111 +236,4 @@ int main(void)
   }
 }
 
-void program1()
-{
-  switch(pstate)
-  {
-  case PM_ST0:
-    ledstate = LSTART;
-    pstate = PM_ST1;
-    break;
-  case PM_ST1:
-    if (ledstate < LEND)
-        ledstate = ledstate << 1;
-    else
-        pstate = PM_ST0;
-    break;
-  }
-}
 
-void program2()
-{
-  switch(pstate)
-  {
-  case PM_ST0:
-    ledstate = LEND;
-    pstate = PM_ST1;
-    break;
-  case PM_ST1:
-    if (ledstate > LSTART)
-      ledstate =  ledstate >> 1;
-    else
-      pstate = PM_ST0;
-    break;
-  }
-}
-
-void program3()
-{
-  switch(pstate)
-  {
-  case PM_ST0:
-    ledstate = LSTART;
-    pstate = PM_ST1;
-    break;
-  case PM_ST1:
-    if (ledstate < LEND)
-      ledstate |= ledstate << 1;
-    else
-      pstate = PM_ST2;
-    break;
-  case PM_ST2:
-    if (ledstate > 0)
-      ledstate &= ledstate - 1;
-    else
-      pstate = PM_ST0;
-    break;
-  }
-}
-
-void program4()
-{
-    switch(pstate)
-    {
-    case PM_ST0:
-      ledstate = LEND;
-      pstate = PM_ST1;
-      break;  
-    case PM_ST1:
-      if (ledstate < 0xF8)
-        ledstate |= ledstate >> 1;
-      else
-        pstate = PM_ST2;
-      break;
-    case PM_ST2:
-      if (ledstate >= LSTART)
-        ledstate &= ledstate >> 1;
-      else
-        pstate = PM_ST0;
-      break;
-    }
-}
-
-void program5()
-{
-    static unsigned char st = 0;
-    switch(st)
-    {
-    case 0:
-      program1();
-      if (pstate == PM_ST0)
-        st = 1;
-        return;
-    break;
-    case 1:
-      program2();
-      if (pstate == PM_ST0)
-        st = 2;
-    break;
-    case 2:
-      program3();
-      if (pstate == PM_ST0)
-        st = 3;
-      break;
-    case 3:
-      program4();
-      if (pstate == PM_ST0)
-        st = 0;
-      break;
-    } 
-}
