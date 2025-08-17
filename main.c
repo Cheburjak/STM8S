@@ -1,6 +1,8 @@
 #include "config.h"
 #include "naming.h"
 #include "iostm8s105k4.h"
+#include "delay.h"
+#include "lcd.h"
 #include "CQueue.h"
 #include <stdbool.h>
 
@@ -182,7 +184,14 @@ void LedsWrite(unsigned char state)
 int main(void)
 { 
   IOInit();
-  CQueueInit(&evbuff, 10);  
+  LCD_Init();
+  CQueueInit(&evbuff, 10); 
+  LCD_Clear();
+  LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
+  LCD_Str("Long press");
+  LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
+  LCD_Str("for start");
+    
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
@@ -195,6 +204,11 @@ int main(void)
         mstate = WORK;
         ledstate = 0;
         CQueueInit(&evbuff, 10); 
+        LCD_Clear();
+        LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
+        LCD_Str("Long press");
+        LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
+        LCD_Str("for end");
         break;
       default:
         break;
@@ -226,6 +240,11 @@ int main(void)
         mstate = WAIT;
         ledstate = 0;
         LedsWrite(ledstate);
+        LCD_Clear();
+        LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
+        LCD_Str("Long press");
+        LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
+        LCD_Str("for start");
         break;
       default:
         break;

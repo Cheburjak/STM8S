@@ -1645,6 +1645,12 @@
         <name>$PROJ_DIR$\CQueue.h</name>
     </file>
     <file>
+        <name>$PROJ_DIR$\delay.h</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\lcd.h</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\main.c</name>
     </file>
     <file>
