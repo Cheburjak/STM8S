@@ -1,30 +1,30 @@
+#include "config.h"
+#include "naming.h"
 #include "iostm8s105k4.h"
 #include "CQueue.h"
 #include <stdbool.h>
 
-#define P_ENLEFT    PD_IDR_IDR5
-#define P_ENRGHT    PD_IDR_IDR6
-#define P_ENPUSH    PD_IDR_IDR4
+unsigned char prog1[] = {1,2,4,8,16,32,64,128};
+unsigned char prog2[] = {128,64,32,16,8,4,2,1};
+unsigned char prog3[] = {1,3,7,15,31,63,127,255};
+unsigned char prog4[] = {255,127,63,31,15,7,3,1};
+unsigned char prog5[] = {
+      1,2,4,8,16,32,64,128,
+      128,64,32,16,8,4,2,1,
+      1,3,7,15,31,63,127,255,
+      255,127,63,31,15,7,3,1
+};
 
-#define M_ENLEFT    (0x1 << 5)
-#define M_ENRGHT    (0x1 << 6)
-#define M_ENPUSH    (0x1 << 4)
 
-#define P_LED_0     PC_ODR_ODR3
-#define P_LED_1     PC_ODR_ODR4
-#define P_LED_2     PC_ODR_ODR5
-#define P_LED_3     PC_ODR_ODR6
-#define P_LED_4     PC_ODR_ODR7
-#define P_LED       PC_ODR
-#define P_LED_DDR   PC_DDR
-#define P_LED_CR1   PC_CR1
-#define P_LED_CR2   PC_CR2
+#define ENLEFT      PRB(ENCR_LEFT_PORT, IDR, ENCR_LEFT_BIT) 
+#define ENRGHT      PRB(ENCR_RGHT_PORT, IDR, ENCR_RGHT_BIT)  
+#define ENPUSH      PRB(ENCR_PUSH_PORT, IDR, ENCR_PUSH_BIT)  
 
-#define M_LED_0     (0x1 << 3)
-#define M_LED_1     (0x1 << 4)
-#define M_LED_2     (0x1 << 5)
-#define M_LED_3     (0x1 << 6)
-#define M_LED_4     (0x1 << 7)
+#define LED0        PRB(LED1_PORT, ODR, LED1_BIT) 
+#define LED1        PRB(LED2_PORT, ODR, LED2_BIT)
+#define LED2        PRB(LED3_PORT, ODR, LED3_BIT)
+#define LED3        PRB(LED4_PORT, ODR, LED4_BIT)
+#define LED4        PRB(LED5_PORT, ODR, LED5_BIT)
 
 enum
 {
@@ -82,7 +82,7 @@ action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
 {
-  if (!P_ENPUSH)
+  if (!ENPUSH)
   {  
     CQueuePush(&evbuff, EV_PUSH);
     enstate = EN_WAIT;
@@ -91,20 +91,20 @@ __interrupt void PinHundler(void)
   switch (enstate)
   {
   case EN_WAIT:
-    if (!P_ENRGHT && P_ENLEFT)
+    if (!ENRGHT && ENLEFT)
       enstate = EN_FRST;
-    else if (!P_ENLEFT && P_ENRGHT)
+    else if (!ENLEFT && ENRGHT)
       enstate = EN_SCND;
     break;
   case EN_FRST:
-    if (!P_ENLEFT && !P_ENRGHT)
+    if (!ENLEFT && !ENRGHT)
     {
       CQueuePush(&evbuff, EV_RGHT);
       enstate = EN_WAIT;
     }
     break;
   case EN_SCND:
-    if (!P_ENLEFT && !P_ENRGHT)
+    if (!ENLEFT && !ENRGHT)
     {
       CQueuePush(&evbuff, EV_LEFT);
       enstate = EN_WAIT;
@@ -121,7 +121,7 @@ __interrupt void Timer4Hundler(void)
   static int lcounter = 0;
   TIM4_SR &= ~(1 << 0);
   
-  lcounter = P_ENPUSH ? 0 : lcounter + 1;
+  lcounter = ENPUSH ? 0 : lcounter + 1;
   if (lcounter >= PUSHWAITING)
   {
     lcounter = 0;
@@ -139,15 +139,27 @@ __interrupt void Timer4Hundler(void)
   
 void IOInit()
 {
-  // LED
-  P_LED_DDR |= M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4;
-  P_LED_CR1 |= M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4;
+  //CONFIG LED PINS
+  PRB(LED1_PORT, DDR, LED1_BIT)=1;
+  PRB(LED2_PORT, DDR, LED2_BIT)=1;
+  PRB(LED3_PORT, DDR, LED3_BIT)=1;
+  PRB(LED4_PORT, DDR, LED4_BIT)=1;
+  PRB(LED5_PORT, DDR, LED5_BIT)=1;
   
-  // ENCODER
-  // PIN MODE
-  PD_CR1 |= M_ENLEFT | M_ENRGHT | M_ENPUSH;
+  PCRB(LED1_PORT, CR1, LED1_BIT)=1;
+  PCRB(LED2_PORT, CR1, LED2_BIT)=1;
+  PCRB(LED3_PORT, CR1, LED3_BIT)=1;
+  PCRB(LED4_PORT, CR1, LED4_BIT)=1;
+  PCRB(LED5_PORT, CR1, LED5_BIT)=1;
+  
+  //CONFIG ENCODER PINS
+  PCRB(ENCR_LEFT_PORT, CR1, ENCR_LEFT_BIT)=1;
+  PCRB(ENCR_RGHT_PORT, CR1, ENCR_RGHT_BIT)=1;
+  PCRB(ENCR_PUSH_PORT, CR1, ENCR_PUSH_BIT)=1;
   // INTERRUPTS
-  PD_CR2 |= M_ENLEFT | M_ENRGHT | M_ENPUSH;
+  PCRB(ENCR_LEFT_PORT, CR2, ENCR_LEFT_BIT)=1;
+  PCRB(ENCR_RGHT_PORT, CR2, ENCR_RGHT_BIT)=1;
+  PCRB(ENCR_PUSH_PORT, CR2, ENCR_PUSH_BIT)=1;  
   // INTERRUPT SENSITIVETY
   EXTI_CR1 |= (1 << 7);
 
@@ -160,6 +172,16 @@ void IOInit()
 
   asm("rim");
 }
+
+void LedsWrite(unsigned char state)
+{
+  LED0 = (state & 1<<0) && 1;
+  LED1 = (state & 1<<1) && 1;
+  LED2 = (state & 1<<2) && 1;
+  LED3 = (state & 1<<3) && 1;
+  LED4 = (state & 1<<4) && 1;
+}
+
 
 int main(void)
 { 
@@ -176,7 +198,7 @@ int main(void)
       {
       case EV_LONG:
         mstate = WORK;
-        ledstate = LSTART;
+        ledstate = 0;
         CQueueInit(&evbuff, 10); 
         break;
       default:
@@ -187,7 +209,7 @@ int main(void)
       switch (event)
       {
       case EV_NONE:
-        P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4); //FIXME: make for only 5 pins
+        LedsWrite(ledstate);
         break;
       case EV_LEFT:
         step-=2;
@@ -207,7 +229,7 @@ int main(void)
       case EV_LONG:
         mstate = WAIT;
         ledstate = 0;
-        P_LED = ledstate;
+        LedsWrite(ledstate);
         break;
       default:
         break;

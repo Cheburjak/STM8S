@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
     <fileVersion>4</fileVersion>
-    <fileChecksum>1474040424</fileChecksum>
+    <fileChecksum>2645581337</fileChecksum>
     <configuration>
         <name>Debug</name>
         <outputs>
@@ -25,13 +25,14 @@
             <file>$TOOLKIT_DIR$\lib\dlstm8smn.a</file>
             <file>$PROJ_DIR$\Debug\List\prj.map</file>
             <file>$TOOLKIT_DIR$\config\lnkstm8s105k4.icf</file>
+            <file>$PROJ_DIR$\naming.h</file>
         </outputs>
         <file>
             <name>[ROOT_NODE]</name>
             <outputs>
                 <tool>
                     <name>ILINK</name>
-                    <file> 18 5</file>
+                    <file> 5 18</file>
                 </tool>
             </outputs>
         </file>
@@ -97,14 +98,10 @@
             <inputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 7 11 15 6</file>
+                    <file> 14 20 7 11 15 6</file>
                 </tool>
             </inputs>
         </file>
-        <forcedrebuild>
-            <name>[MULTI_TOOL]</name>
-            <tool>ILINK</tool>
-        </forcedrebuild>
     </configuration>
     <configuration>
         <name>Release</name>

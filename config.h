@@ -24,10 +24,10 @@
 #define LCD_D7_BIT  3
 
 #define ENCR_LEFT_PORT D
-#define ENCR_LEFT_BIT  6
+#define ENCR_LEFT_BIT  5
 
 #define ENCR_RGHT_PORT D
-#define ENCR_RGHT_BIT  5
+#define ENCR_RGHT_BIT  6
 
 #define ENCR_PUSH_PORT D
 #define ENCR_PUSH_BIT  4 

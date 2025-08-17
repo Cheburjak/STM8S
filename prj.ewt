@@ -2165,4 +2165,7 @@
     <file>
         <name>$PROJ_DIR$\main.c</name>
     </file>
+    <file>
+        <name>$PROJ_DIR$\naming.h</name>
+    </file>
 </project>
