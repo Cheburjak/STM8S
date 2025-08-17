@@ -1,0 +1,13 @@
+#pragma once
+// NAME RESOVLING
+// EXAMPLE: PRB(B, DDR, 7) => PB_DDR_DDR7
+// EXAMPLE: PRB(B, IDR, 7) => PB_IDR_IDR7       
+#define _MAKE_NAME_(PORT, REG, BIT) P##PORT##_##REG##_##REG##BIT
+#define PRB(PORT, REG, BIT) _MAKE_NAME_(PORT, REG, BIT)
+// NAME RESOVLING       
+#define CR1 1
+#define CR2 2
+// EXAMPLE: PCRB(B, 1, 7) => PB_CR1_C17
+// EXAMPLE: PCRB(B, 2, 7) => PB_CR2_C27
+#define _MAKE_CR_NAME_(PORT, NUM, BIT) P##PORT##_CR##NUM##_##C##NUM##BIT
+#define PCRB(PORT, NUM, BIT) _MAKE_CR_NAME_(PORT, NUM, BIT)
