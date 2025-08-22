@@ -1,22 +1,28 @@
-#include"menu.h"
+#include "menu.h"
 #define NULL 0
 
 static void toStr(char *buff, value_t val)
 {
-    value_t i;
-    for (i = 0; i < DISP_WIDTH; i++)
-        buff[i] = ' ';
-    buff[i] = '\0';
+    value_t size = 0;
+    for(value_t val_ = val ; val_ != 0; size++, val_/=10); 
+   
+    value_t idx;
+    for (idx = 0; idx < DISP_WIDTH; idx++, buff[idx] = ' ');
+    buff[idx] = '\0';
+    buff[idx-1] = '>';
+    buff[0] = '<';
+
+    idx = idx - (idx-size) / 2;
 
     if (val == 0)
     {
-        buff[--i] = '0';
+        buff[idx] = '0';
     }
     else
     {
         while (val)
         {
-            buff[--i] = '0' + (val % 10);
+            buff[--idx] = '0' + (val % 10);
             val /= 10;
         }
     }
@@ -33,6 +39,11 @@ const char *MO_Repr(MObj *this)
         return this->repr_buff;
     }
     return NULL;
+}
+
+const char *MO_Title(MObj *this, const char * Default)
+{
+    return this->parent ? MO_Repr(this->parent) : Default;
 }
 
 void MO_Left(MObj *this)

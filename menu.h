@@ -36,6 +36,7 @@ typedef struct MObj
     char repr_buff[DISP_WIDTH + 1];
 } MObj;
 
+const char *MO_Title(MObj *this, const char * Default);
 const char *MO_Repr(MObj *this);
 void MO_Left(MObj *this);
 void MO_Right(MObj *this);
