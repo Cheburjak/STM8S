@@ -121,10 +121,18 @@ void LCD_WriteD(char byte)
   LCD_Cmit();
 }
 
-void LCD_Str(const char* str)
+void LCD_StrF( const char* str)
 {
+  LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
   do LCD_WriteD(*str++); while(*str);
 }
+
+void LCD_StrS( const char* str)
+{
+  LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
+  do LCD_WriteD(*str++); while(*str);
+}
+
 
 void LCD_Clear()
 {

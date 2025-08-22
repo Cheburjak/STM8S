@@ -173,11 +173,11 @@ void IOInit()
 
 void LedsWrite(unsigned char state)
 {
-  LED0 = (state & 1<<0) && 1;
-  LED1 = (state & 1<<1) && 1;
-  LED2 = (state & 1<<2) && 1;
-  LED3 = (state & 1<<3) && 1;
-  LED4 = (state & 1<<4) && 1;
+  LED0 = (state & 1 << 0) && 1;
+  LED1 = (state & 1 << 1) && 1;
+  LED2 = (state & 1 << 2) && 1;
+  LED3 = (state & 1 << 3) && 1;
+  LED4 = (state & 1 << 4) && 1;
 }
 
 
@@ -185,12 +185,9 @@ int main(void)
 { 
   IOInit();
   LCD_Init();
-  CQueueInit(&evbuff, 10); 
   LCD_Clear();
-  LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
-  LCD_Str("Long press");
-  LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
-  LCD_Str("for start");
+  CQueueInit(&evbuff, 10); 
+  LCD_StrF("Waiting...      ");
     
   while (1)
   {
@@ -204,11 +201,7 @@ int main(void)
         mstate = WORK;
         ledstate = 0;
         CQueueInit(&evbuff, 10); 
-        LCD_Clear();
-        LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
-        LCD_Str("Long press");
-        LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
-        LCD_Str("for end");
+        LCD_StrF("Working...!        ");
         break;
       default:
         break;
@@ -239,12 +232,8 @@ int main(void)
       case EV_LONG:
         mstate = WAIT;
         ledstate = 0;
-        LedsWrite(ledstate);
-        LCD_Clear();
-        LCD_WriteI(BIN8(1,0,0,0,0,0,0,0));
-        LCD_Str("Long press");
-        LCD_WriteI(BIN8(1,1,0,0,0,0,0,0));
-        LCD_Str("for start");
+        LedsWrite(ledstate);       
+        LCD_StrF("Waiting...      ");
         break;
       default:
         break;

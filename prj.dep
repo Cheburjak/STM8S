@@ -6,78 +6,54 @@
         <name>Debug</name>
         <outputs>
             <file>$PROJ_DIR$\delay.h</file>
-            <file>$PROJ_DIR$\lcd.h</file>
+            <file>$PROJ_DIR$\config.h</file>
             <file>$PROJ_DIR$\CQueue.c</file>
-            <file>$TOOLKIT_DIR$\lib\dbgstm8smd.a</file>
+            <file>$PROJ_DIR$\CQueue.h</file>
+            <file>$TOOLKIT_DIR$\lib\dlstm8smn.a</file>
             <file>$PROJ_DIR$\Debug\Obj\main.__cstat.et</file>
-            <file>$PROJ_DIR$\Debug\Obj\CQueue.xcl</file>
             <file>$PROJ_DIR$\Debug\Obj\main.xcl</file>
-            <file>$PROJ_DIR$\Debug\Exe\prj.out</file>
-            <file>$TOOLKIT_DIR$\inc\c\stdbool.h</file>
-            <file>$TOOLKIT_DIR$\inc\iostm8s105k4.h</file>
-            <file>$PROJ_DIR$\Debug\Obj\CQueue.o</file>
-            <file>$PROJ_DIR$\progs.c</file>
-            <file>$PROJ_DIR$\Debug\Obj\progs.xcl</file>
+            <file>$PROJ_DIR$\Debug\Obj\CQueue.xcl</file>
+            <file>$PROJ_DIR$\naming.h</file>
             <file>$TOOLKIT_DIR$\inc\io_macros.h</file>
             <file>$PROJ_DIR$\Debug\Obj\prj.pbd</file>
+            <file>$PROJ_DIR$\lcd.h</file>
             <file>$PROJ_DIR$\Debug\Obj\main.o</file>
-            <file>$PROJ_DIR$\config.h</file>
-            <file>$PROJ_DIR$\CQueue.h</file>
-            <file>$PROJ_DIR$\main.c</file>
-            <file>$TOOLKIT_DIR$\lib\dlstm8smn.a</file>
+            <file>$TOOLKIT_DIR$\lib\dbgstm8smd.a</file>
+            <file>$PROJ_DIR$\Debug\Obj\progs.xcl</file>
+            <file>$PROJ_DIR$\Debug\Obj\CQueue.o</file>
+            <file>$TOOLKIT_DIR$\inc\iostm8s105k4.h</file>
             <file>$PROJ_DIR$\Debug\List\prj.map</file>
+            <file>$PROJ_DIR$\main.c</file>
             <file>$TOOLKIT_DIR$\config\lnkstm8s105k4.icf</file>
-            <file>$PROJ_DIR$\naming.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\stdbool.h</file>
+            <file>$PROJ_DIR$\Debug\Exe\prj.out</file>
+            <file>$PROJ_DIR$\progs.c</file>
         </outputs>
-        <file>
-            <name>[ROOT_NODE]</name>
-            <outputs>
-                <tool>
-                    <name>ILINK</name>
-                    <file> 7 20</file>
-                </tool>
-            </outputs>
-        </file>
         <file>
             <name>$PROJ_DIR$\CQueue.c</name>
             <outputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 10</file>
+                    <file> 15</file>
                 </tool>
                 <tool>
                     <name>BICOMP</name>
-                    <file> 5</file>
+                    <file> 7</file>
                 </tool>
             </outputs>
             <inputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 17</file>
+                    <file> 3</file>
                 </tool>
             </inputs>
         </file>
         <file>
-            <name>$PROJ_DIR$\Debug\Exe\prj.out</name>
+            <name>[ROOT_NODE]</name>
             <outputs>
                 <tool>
                     <name>ILINK</name>
-                    <file> 20</file>
-                </tool>
-            </outputs>
-            <inputs>
-                <tool>
-                    <name>ILINK</name>
-                    <file> 21 10 15 19 3</file>
-                </tool>
-            </inputs>
-        </file>
-        <file>
-            <name>$PROJ_DIR$\progs.c</name>
-            <outputs>
-                <tool>
-                    <name>BICOMP</name>
-                    <file> 12</file>
+                    <file> 21 17</file>
                 </tool>
             </outputs>
         </file>
@@ -85,12 +61,12 @@
             <name>$PROJ_DIR$\main.c</name>
             <outputs>
                 <tool>
-                    <name>ICCSTM8</name>
-                    <file> 15</file>
+                    <name>__cstat</name>
+                    <file> 5</file>
                 </tool>
                 <tool>
-                    <name>__cstat</name>
-                    <file> 4</file>
+                    <name>ICCSTM8</name>
+                    <file> 12</file>
                 </tool>
                 <tool>
                     <name>BICOMP</name>
@@ -100,9 +76,33 @@
             <inputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 16 22 9 13 0 1 8 17</file>
+                    <file> 1 8 16 9 0 11 20 3</file>
                 </tool>
             </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\Debug\Exe\prj.out</name>
+            <outputs>
+                <tool>
+                    <name>ILINK</name>
+                    <file> 17</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>ILINK</name>
+                    <file> 19 15 12 4 13</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\progs.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 14</file>
+                </tool>
+            </outputs>
         </file>
     </configuration>
     <configuration>
