@@ -1,40 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
     <fileVersion>4</fileVersion>
-    <fileChecksum>2599387030</fileChecksum>
+    <fileChecksum>2462610552</fileChecksum>
     <configuration>
         <name>Debug</name>
         <outputs>
-            <file>$PROJ_DIR$\delay.h</file>
             <file>$PROJ_DIR$\CQueue.h</file>
-            <file>$PROJ_DIR$\CQueue.c</file>
-            <file>$PROJ_DIR$\Debug\Obj\main.xcl</file>
-            <file>$PROJ_DIR$\Debug\Obj\prj.pbd</file>
-            <file>$PROJ_DIR$\Debug\Obj\main.o</file>
-            <file>$PROJ_DIR$\Debug\Obj\progs.xcl</file>
-            <file>$PROJ_DIR$\main.c</file>
             <file>$PROJ_DIR$\naming.h</file>
-            <file>$TOOLKIT_DIR$\lib\dbgstm8smd.a</file>
+            <file>$PROJ_DIR$\lcd.h</file>
             <file>$PROJ_DIR$\config.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\prj.pbd</file>
+            <file>$TOOLKIT_DIR$\lib\dbgstm8smd.a</file>
             <file>$PROJ_DIR$\Debug\Obj\CQueue.o</file>
+            <file>$PROJ_DIR$\delay.h</file>
             <file>$TOOLKIT_DIR$\inc\iostm8s105k4.h</file>
             <file>$PROJ_DIR$\Debug\List\prj.map</file>
-            <file>$TOOLKIT_DIR$\config\lnkstm8s105k4.icf</file>
-            <file>$PROJ_DIR$\lcd.h</file>
             <file>$TOOLKIT_DIR$\inc\c\stdbool.h</file>
+            <file>$TOOLKIT_DIR$\config\lnkstm8s105k4.icf</file>
             <file>$PROJ_DIR$\Debug\Obj\CQueue.xcl</file>
-            <file>$TOOLKIT_DIR$\inc\io_macros.h</file>
-            <file>$PROJ_DIR$\Debug\Obj\main.__cstat.et</file>
-            <file>$TOOLKIT_DIR$\lib\dlstm8smn.a</file>
+            <file>$PROJ_DIR$\Debug\Obj\main.xcl</file>
+            <file>$PROJ_DIR$\CQueue.c</file>
+            <file>$PROJ_DIR$\main.c</file>
+            <file>$PROJ_DIR$\Debug\Obj\main.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\progs.xcl</file>
             <file>$PROJ_DIR$\progs.c</file>
+            <file>$TOOLKIT_DIR$\lib\dlstm8smn.a</file>
+            <file>$TOOLKIT_DIR$\inc\io_macros.h</file>
             <file>$PROJ_DIR$\Debug\Exe\prj.out</file>
+            <file>$PROJ_DIR$\Debug\Obj\main.__cstat.et</file>
+            <file>$TOOLKIT_DIR$\inc\c\xencoding_limits.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Defaults.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Product.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Threads.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\ysizet.h</file>
+            <file>$TOOLKIT_DIR$\lib\dlstm8smn.h</file>
+            <file>$PROJ_DIR$\menu.h</file>
+            <file>$PROJ_DIR$\menu.c</file>
+            <file>$TOOLKIT_DIR$\inc\c\ycheck.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\yvals.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\stddef.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\menu.xcl</file>
+            <file>$PROJ_DIR$\Debug\Obj\menu.o</file>
         </outputs>
         <file>
             <name>[ROOT_NODE]</name>
             <outputs>
                 <tool>
                     <name>ILINK</name>
-                    <file> 22 13</file>
+                    <file> 21 9</file>
                 </tool>
             </outputs>
         </file>
@@ -43,17 +56,17 @@
             <outputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 11</file>
+                    <file> 6</file>
                 </tool>
                 <tool>
                     <name>BICOMP</name>
-                    <file> 17</file>
+                    <file> 12</file>
                 </tool>
             </outputs>
             <inputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 1</file>
+                    <file> 0</file>
                 </tool>
             </inputs>
         </file>
@@ -62,21 +75,21 @@
             <outputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 5</file>
+                    <file> 16</file>
                 </tool>
                 <tool>
                     <name>BICOMP</name>
-                    <file> 3</file>
+                    <file> 13</file>
                 </tool>
                 <tool>
                     <name>__cstat</name>
-                    <file> 19</file>
+                    <file> 22</file>
                 </tool>
             </outputs>
             <inputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 10 8 12 18 0 15 16 1</file>
+                    <file> 3 1 8 20 7 2 10 0</file>
                 </tool>
             </inputs>
         </file>
@@ -85,7 +98,7 @@
             <outputs>
                 <tool>
                     <name>BICOMP</name>
-                    <file> 6</file>
+                    <file> 17</file>
                 </tool>
             </outputs>
         </file>
@@ -94,13 +107,32 @@
             <outputs>
                 <tool>
                     <name>ILINK</name>
-                    <file> 13</file>
+                    <file> 9</file>
                 </tool>
             </outputs>
             <inputs>
                 <tool>
                     <name>ILINK</name>
-                    <file> 14 11 5 20 9</file>
+                    <file> 11 6 16 35 19 5</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\menu.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCSTM8</name>
+                    <file> 35</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 34</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>ICCSTM8</name>
+                    <file> 29</file>
                 </tool>
             </inputs>
         </file>

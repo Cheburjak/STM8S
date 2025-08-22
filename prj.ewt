@@ -2172,6 +2172,12 @@
         <name>$PROJ_DIR$\main.c</name>
     </file>
     <file>
+        <name>$PROJ_DIR$\menu.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\menu.h</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\naming.h</name>
     </file>
 </project>
