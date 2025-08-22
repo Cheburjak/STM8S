@@ -2154,12 +2154,24 @@
         </settings>
     </configuration>
     <file>
+        <name>$PROJ_DIR$\config.h</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\CQueue.c</name>
     </file>
     <file>
         <name>$PROJ_DIR$\CQueue.h</name>
     </file>
     <file>
+        <name>$PROJ_DIR$\delay.h</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\lcd.h</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\main.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\naming.h</name>
     </file>
 </project>

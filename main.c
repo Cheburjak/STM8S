@@ -1,37 +1,45 @@
+#include "config.h"
+#include "naming.h"
 #include "iostm8s105k4.h"
+#include "delay.h"
+#include "lcd.h"
 #include "CQueue.h"
 #include <stdbool.h>
 
-#define P_ENLEFT    PD_IDR_IDR5
-#define P_ENRGHT    PD_IDR_IDR6
-#define P_ENPUSH    PD_IDR_IDR4
+#define ENLEFT PRB(ENCR_LEFT_PORT, IDR, ENCR_LEFT_BIT)
+#define ENRGHT PRB(ENCR_RGHT_PORT, IDR, ENCR_RGHT_BIT)
+#define ENPUSH PRB(ENCR_PUSH_PORT, IDR, ENCR_PUSH_BIT)
 
-#define M_ENLEFT    (0x1 << 5)
-#define M_ENRGHT    (0x1 << 6)
-#define M_ENPUSH    (0x1 << 4)
+#define LED0 PRB(LED1_PORT, ODR, LED1_BIT)
+#define LED1 PRB(LED2_PORT, ODR, LED2_BIT)
+#define LED2 PRB(LED3_PORT, ODR, LED3_BIT)
+#define LED3 PRB(LED4_PORT, ODR, LED4_BIT)
+#define LED4 PRB(LED5_PORT, ODR, LED5_BIT)
 
-#define P_LED_0     PC_ODR_ODR3
-#define P_LED_1     PC_ODR_ODR4
-#define P_LED_2     PC_ODR_ODR5
-#define P_LED_3     PC_ODR_ODR6
-#define P_LED_4     PC_ODR_ODR7
-#define P_LED       PC_ODR
-#define P_LED_DDR   PC_DDR
-#define P_LED_CR1   PC_CR1
-#define P_LED_CR2   PC_CR2
+unsigned char prog1[] = {1, 2, 4, 8, 16, 32, 64, 128};
+unsigned char prog2[] = {128, 64, 32, 16, 8, 4, 2, 1};
+unsigned char prog3[] = {1, 3, 7, 15, 31, 63, 127, 255, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0};
+unsigned char prog4[] = {255, 127, 63, 31, 15, 7, 3, 1, 3, 7, 15, 31, 63, 127, 255, 0};
+unsigned char prog5[] = {
+    1, 2, 4, 8, 16, 32, 64, 128,
+    128, 64, 32, 16, 8, 4, 2, 1,
+    1, 3, 7, 15, 31, 63, 127, 255,
+    255, 127, 63, 31, 15, 7, 3, 1};
 
-#define M_LED_0     (0x1 << 3)
-#define M_LED_1     (0x1 << 4)
-#define M_LED_2     (0x1 << 5)
-#define M_LED_3     (0x1 << 6)
-#define M_LED_4     (0x1 << 7)
-
-enum
+#define countof(x) (sizeof(x) / sizeof(x[0]))
+struct
 {
-  PM_ST0 = 0, 
-  PM_ST1, 
-  PM_ST2
-} pstate = PM_ST0;
+  unsigned char *arr;
+  unsigned char size;
+} progs[] = {
+    {prog1, countof(prog1)},
+    {prog2, countof(prog2)},
+    {prog3, countof(prog3)},
+    {prog4, countof(prog4)},
+    {prog5, countof(prog5)},
+};
+unsigned char idx = 0;
+unsigned char curr = 0;
 
 enum
 {
@@ -42,12 +50,13 @@ enum
 
 typedef enum
 {
-  EV_NONE = 0,
-  EV_LEFT,
-  EV_RGHT,
-  EV_PUSH,
-  EV_TTCK,
-  EV_LONG,
+  EV_NONE = 0, // IDLE
+  EV_LEFT,     // ENCODER LEFT
+  EV_RGHT,     // ENCODER RIGHT
+  EV_PUSH,     // ENCODER PUSH
+  EV_TTCK,     // TIMER TICK FOR LEDS
+  EV_LONG,     // ENCODER LONG PUSH
+  EV_IACT      // INACTIVE
 } event_t;
 
 typedef enum
@@ -56,57 +65,53 @@ typedef enum
   WAIT
 } state_t;
 
-//GLOBALS
-#define PROGRAMS    5
-#define SPDMAX      96
-#define SPDMIN      3
-#define GOAL        0xFF
-#define LSTART      0x8
-#define LEND        0x80
-#define PUSHWAITING 0x64
+// GLOBALS
+#define SPDMAX 96
+#define SPDMIN 3
+#define GOAL 0xFF
+#define PUSHTIME 0x64
+#define IACTTIME 0x13E
 
 CQueue evbuff;
 state_t mstate = WAIT;
 unsigned char ledstate = 0;
 unsigned char step = SPDMIN;
-unsigned char curr = 0;
-
-typedef void(*action_t)(void);
-void program1();
-void program2();
-void program3();
-void program4();
-void program5();
-action_t actions[PROGRAMS] = {program1, program2, program3, program4, program5};
+int iact_counter = 0;
 
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
 {
-  if (!P_ENPUSH)
-  {  
+  if (!ENPUSH)
+  {
     CQueuePush(&evbuff, EV_PUSH);
+    iact_counter = 0;
+
     enstate = EN_WAIT;
     return;
   }
   switch (enstate)
   {
   case EN_WAIT:
-    if (!P_ENRGHT && P_ENLEFT)
+    if (!ENRGHT && ENLEFT)
       enstate = EN_FRST;
-    else if (!P_ENLEFT && P_ENRGHT)
+    else if (!ENLEFT && ENRGHT)
       enstate = EN_SCND;
     break;
   case EN_FRST:
-    if (!P_ENLEFT && !P_ENRGHT)
+    if (!ENLEFT && !ENRGHT)
     {
       CQueuePush(&evbuff, EV_RGHT);
+      iact_counter = 0;
+
       enstate = EN_WAIT;
     }
     break;
   case EN_SCND:
-    if (!P_ENLEFT && !P_ENRGHT)
+    if (!ENLEFT && !ENRGHT)
     {
       CQueuePush(&evbuff, EV_LEFT);
+      iact_counter = 0;
+
       enstate = EN_WAIT;
     }
     break;
@@ -120,14 +125,21 @@ __interrupt void Timer4Hundler(void)
   static int counter = 0;
   static int lcounter = 0;
   TIM4_SR &= ~(1 << 0);
-  
-  lcounter = P_ENPUSH ? 0 : lcounter + 1;
-  if (lcounter >= PUSHWAITING)
+
+  if (iact_counter++ >= IACTTIME)
   {
-    lcounter = 0;
-    CQueuePush(&evbuff, EV_LONG);
+    iact_counter = 0;
+    CQueuePush(&evbuff, EV_IACT);
   }
-  
+
+  lcounter = ENPUSH ? 0 : lcounter + 1;
+  if (lcounter >= PUSHTIME)
+  {
+    CQueuePush(&evbuff, EV_LONG);
+    iact_counter = 0;
+    lcounter = 0;
+  }
+
   counter += step;
   if (counter >= GOAL)
   {
@@ -136,18 +148,30 @@ __interrupt void Timer4Hundler(void)
   }
   return;
 }
-  
+
 void IOInit()
 {
-  // LED
-  P_LED_DDR |= M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4;
-  P_LED_CR1 |= M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4;
-  
-  // ENCODER
-  // PIN MODE
-  PD_CR1 |= M_ENLEFT | M_ENRGHT | M_ENPUSH;
+  // CONFIG LED PINS
+  PRB(LED1_PORT, DDR, LED1_BIT) = 1;
+  PRB(LED2_PORT, DDR, LED2_BIT) = 1;
+  PRB(LED3_PORT, DDR, LED3_BIT) = 1;
+  PRB(LED4_PORT, DDR, LED4_BIT) = 1;
+  PRB(LED5_PORT, DDR, LED5_BIT) = 1;
+
+  PCRB(LED1_PORT, CR1, LED1_BIT) = 1;
+  PCRB(LED2_PORT, CR1, LED2_BIT) = 1;
+  PCRB(LED3_PORT, CR1, LED3_BIT) = 1;
+  PCRB(LED4_PORT, CR1, LED4_BIT) = 1;
+  PCRB(LED5_PORT, CR1, LED5_BIT) = 1;
+
+  // CONFIG ENCODER PINS
+  PCRB(ENCR_LEFT_PORT, CR1, ENCR_LEFT_BIT) = 1;
+  PCRB(ENCR_RGHT_PORT, CR1, ENCR_RGHT_BIT) = 1;
+  PCRB(ENCR_PUSH_PORT, CR1, ENCR_PUSH_BIT) = 1;
   // INTERRUPTS
-  PD_CR2 |= M_ENLEFT | M_ENRGHT | M_ENPUSH;
+  PCRB(ENCR_LEFT_PORT, CR2, ENCR_LEFT_BIT) = 1;
+  PCRB(ENCR_RGHT_PORT, CR2, ENCR_RGHT_BIT) = 1;
+  PCRB(ENCR_PUSH_PORT, CR2, ENCR_PUSH_BIT) = 1;
   // INTERRUPT SENSITIVETY
   EXTI_CR1 |= (1 << 7);
 
@@ -157,27 +181,39 @@ void IOInit()
   TIM4_CNTR = 1;
   TIM4_IER |= 1;
   TIM4_CR1 |= 1;
-
   asm("rim");
 }
 
+void LedsWrite(unsigned char state)
+{
+  LED0 = (state & 1 << 0) && 1;
+  LED1 = (state & 1 << 1) && 1;
+  LED2 = (state & 1 << 2) && 1;
+  LED3 = (state & 1 << 3) && 1;
+  LED4 = (state & 1 << 4) && 1;
+}
+
 int main(void)
-{ 
+{
   IOInit();
-  CQueueInit(&evbuff, 10);  
-  
+  LCD_Init();
+  LCD_Clear();
+  CQueueInit(&evbuff, 10);
+  LCD_StrF("Waiting...      ");
+
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
     switch (mstate)
     {
     case WAIT:
-      switch(event)
+      switch (event)
       {
       case EV_LONG:
         mstate = WORK;
-        ledstate = LSTART;
-        CQueueInit(&evbuff, 10); 
+        ledstate = 0;
+        CQueueInit(&evbuff, 10);
+        LCD_StrF("Working...        ");
         break;
       default:
         break;
@@ -187,142 +223,37 @@ int main(void)
       switch (event)
       {
       case EV_NONE:
-        P_LED = ledstate & (M_LED_0 | M_LED_1 | M_LED_2 | M_LED_3 | M_LED_4); //FIXME: make for only 5 pins
+        LedsWrite(ledstate);
         break;
       case EV_LEFT:
-        step-=2;
-        step = step < SPDMIN ? SPDMIN : step;      
+        step -= 2;
+        step = step < SPDMIN ? SPDMIN : step;
         break;
       case EV_RGHT:
-        step+=2;
+        step += 2;
         step = step > SPDMAX ? SPDMAX : step;
         break;
+      case EV_IACT:
+        ledstate = 0xFF;
+        break;
       case EV_PUSH:
-        curr = (curr+1) % PROGRAMS;
-        pstate = PM_ST0;   
+        curr = (curr + 1) % countof(progs);
+        idx = 0;
         break;
       case EV_TTCK:
-        actions[curr]();
+        ledstate = progs[curr].arr[idx];
+        idx = (idx + 1) % progs[curr].size;
         break;
       case EV_LONG:
         mstate = WAIT;
         ledstate = 0;
-        P_LED = ledstate;
+        LedsWrite(ledstate);
+        LCD_StrF("Waiting...      ");
         break;
       default:
         break;
       }
       break;
     }
-    
   }
-}
-
-void program1()
-{
-  switch(pstate)
-  {
-  case PM_ST0:
-    ledstate = LSTART;
-    pstate = PM_ST1;
-    break;
-  case PM_ST1:
-    if (ledstate < LEND)
-        ledstate = ledstate << 1;
-    else
-        pstate = PM_ST0;
-    break;
-  }
-}
-
-void program2()
-{
-  switch(pstate)
-  {
-  case PM_ST0:
-    ledstate = LEND;
-    pstate = PM_ST1;
-    break;
-  case PM_ST1:
-    if (ledstate > LSTART)
-      ledstate =  ledstate >> 1;
-    else
-      pstate = PM_ST0;
-    break;
-  }
-}
-
-void program3()
-{
-  switch(pstate)
-  {
-  case PM_ST0:
-    ledstate = LSTART;
-    pstate = PM_ST1;
-    break;
-  case PM_ST1:
-    if (ledstate < LEND)
-      ledstate |= ledstate << 1;
-    else
-      pstate = PM_ST2;
-    break;
-  case PM_ST2:
-    if (ledstate > 0)
-      ledstate &= ledstate - 1;
-    else
-      pstate = PM_ST0;
-    break;
-  }
-}
-
-void program4()
-{
-    switch(pstate)
-    {
-    case PM_ST0:
-      ledstate = LEND;
-      pstate = PM_ST1;
-      break;  
-    case PM_ST1:
-      if (ledstate < 0xF8)
-        ledstate |= ledstate >> 1;
-      else
-        pstate = PM_ST2;
-      break;
-    case PM_ST2:
-      if (ledstate >= LSTART)
-        ledstate &= ledstate >> 1;
-      else
-        pstate = PM_ST0;
-      break;
-    }
-}
-
-void program5()
-{
-    static unsigned char st = 0;
-    switch(st)
-    {
-    case 0:
-      program1();
-      if (pstate == PM_ST0)
-        st = 1;
-        return;
-    break;
-    case 1:
-      program2();
-      if (pstate == PM_ST0)
-        st = 2;
-    break;
-    case 2:
-      program3();
-      if (pstate == PM_ST0)
-        st = 3;
-      break;
-    case 3:
-      program4();
-      if (pstate == PM_ST0)
-        st = 0;
-      break;
-    } 
 }
