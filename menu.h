@@ -19,9 +19,9 @@ typedef struct MObj
 {
     enum
     {
-        MENU,
-        SLIDER,
-        COMBO
+        TMENU,
+        TSLIDER,
+        TCOMBO
     } type;
 
     MItem *items;

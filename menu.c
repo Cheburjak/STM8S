@@ -26,10 +26,10 @@ const char *MO_Repr(MObj *this)
 {
     switch (this->type)
     {
-    case COMBO:
-    case MENU:
+    case TCOMBO:
+    case TMENU:
         return this->items[this->curr].text;
-    case SLIDER:
+    case TSLIDER:
         return this->repr_buff;
     }
     return NULL;
@@ -39,14 +39,14 @@ void MO_Left(MObj *this)
 {
     switch (this->type)
     {
-    case COMBO:
-    case MENU:
+    case TCOMBO:
+    case TMENU:
         if (this->curr > 0)
             this->curr--;
         else
             this->curr = this->size - 1;
         break;
-    case SLIDER:
+    case TSLIDER:
         this->fake_value--;
         if (this->fake_value < this->min_bound || this->fake_value >= this->max_bound)
             this->fake_value = this->min_bound;
@@ -59,12 +59,12 @@ void MO_Right(MObj *this)
 {
     switch (this->type)
     {
-    case COMBO:
-    case MENU:
+    case TCOMBO:
+    case TMENU:
         this->curr++;
         this->curr %= this->size;
         break;
-    case SLIDER:
+    case TSLIDER:
         this->fake_value++;
         if (this->fake_value > this->max_bound)
             this->fake_value = this->max_bound;
@@ -77,19 +77,19 @@ MObj *MO_Push(MObj *this)
 {
     switch (this->type)
     {
-    case MENU:
+    case TMENU:
     {
         MObj *child = this->items[this->curr].child;
         if (child == NULL)
             return this;
 
         child->parent = this;
-        if (child->type == SLIDER)
+        if (child->type == TSLIDER)
         {
             toStr(child->repr_buff, *child->true_value);
             child->fake_value = *child->true_value;
         }
-        else if (child->type == COMBO)
+        else if (child->type == TCOMBO)
         {
             for (value_t i = 0; i < child->size; i++)
             {
@@ -102,10 +102,10 @@ MObj *MO_Push(MObj *this)
         }
         return child;
     }
-    case SLIDER:
+    case TSLIDER:
         *this->true_value = this->fake_value;
         return this->parent;
-    case COMBO:
+    case TCOMBO:
         *this->true_value = this->items[this->curr].value;
         return this->parent;
     }
@@ -117,15 +117,15 @@ MObj *MO_Back(MObj *this)
 {
     switch (this->type)
     {
-    case MENU:
+    case TMENU:
         if (this->parent != NULL)
             return this->parent;
         return NULL;
         break;
-    case SLIDER:
+    case TSLIDER:
         return this->parent;
         break;
-    case COMBO:
+    case TCOMBO:
         return this->parent;
     }
     return this;

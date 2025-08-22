@@ -4,7 +4,11 @@
 #include "delay.h"
 #include "lcd.h"
 #include "CQueue.h"
+#include "menu.h"
 #include <stdbool.h>
+
+#define NULL 0
+#define _countof(ARR) (sizeof(ARR) / sizeof(ARR[0]))
 
 #define ENLEFT PRB(ENCR_LEFT_PORT, IDR, ENCR_LEFT_BIT)
 #define ENRGHT PRB(ENCR_RGHT_PORT, IDR, ENCR_RGHT_BIT)
@@ -62,7 +66,8 @@ typedef enum
 typedef enum
 {
   WORK = 0,
-  WAIT
+  WAIT,
+  MENU
 } state_t;
 
 // GLOBALS
@@ -77,6 +82,98 @@ state_t mstate = WAIT;
 unsigned char ledstate = 0;
 unsigned char step = SPDMIN;
 int iact_counter = 0;
+
+/*---------------------------------------------------------------------
+                              MAIN MENU
+-----------------------------------------------------------------------*/
+struct
+{
+  value_t val1;
+  value_t val2;
+  value_t val3;
+  value_t val4;
+  value_t combo;
+} values = {5, 25, 35, 55, 2};
+
+MObj RootMenu, Menu1, Menu2;
+MObj Slider1, Slider2, Slider3, Slider4, TextCombo;
+
+MItem RootMenuItems[] =
+    {{"Menu1           ", .child = &Menu1},
+     {"Menu2           ", .child = &Menu2},
+     {"Menu3           ", .child = &TextCombo}};
+
+MItem Menu1Items[] =
+    {{"Menu1Option1    ", .child = &Slider1},
+     {"Menu1Option2    ", .child = &Slider2}};
+
+MItem Menu2Items[] =
+    {{"Menu2Option3    ", .child = &Slider3},
+     {"Menu2Option4    ", .child = &Slider4}};
+
+MItem Menu3TextCombo[] =
+    {{"ON              ", .value = 1},
+     {"OFF             ", .value = 0},
+     {"MAYBE           ", .value = 2}};
+
+MObj TextCombo = {
+    .type = TCOMBO,
+    .items = Menu3TextCombo,
+    .curr = 0,
+    .size = _countof(Menu3TextCombo),
+    .true_value = &values.combo,
+    .parent = NULL};
+
+MObj RootMenu = {
+    .type = TMENU,
+    .items = RootMenuItems,
+    .curr = 0,
+    .size = sizeof(RootMenuItems) / sizeof(RootMenuItems[0]),
+    .parent = NULL};
+
+MObj Menu1 = {
+    .type = TMENU,
+    .items = Menu1Items,
+    .curr = 0,
+    .size = sizeof(Menu1Items) / sizeof(Menu1Items[0]),
+    .parent = NULL};
+
+MObj Menu2 = {
+    .type = TMENU,
+    .items = Menu2Items,
+    .curr = 0,
+    .size = sizeof(Menu2Items) / sizeof(Menu2Items[0]),
+    .parent = NULL};
+
+MObj Slider1 = {
+    .type = TSLIDER,
+    .true_value = &values.val1,
+    .min_bound = 0,
+    .max_bound = 10,
+    .parent = NULL};
+
+MObj Slider2 = {
+    .type = TSLIDER,
+    .true_value = &values.val2,
+    .min_bound = 20,
+    .max_bound = 80,
+    .parent = NULL};
+
+MObj Slider3 = {
+    .type = TSLIDER,
+    .true_value = &values.val3,
+    .min_bound = 30,
+    .max_bound = 90,
+    .parent = NULL};
+
+MObj Slider4 = {
+    .type = TSLIDER,
+    .true_value = &values.val4,
+    .min_bound = 50,
+    .max_bound = 75,
+    .parent = NULL};
+
+/*---------------------------------------------------------------------*/
 
 #pragma vector = EXTI3_vector
 __interrupt void PinHundler(void)
@@ -193,6 +290,10 @@ void LedsWrite(unsigned char state)
   LED4 = (state & 1 << 4) && 1;
 }
 
+/*---------------------------------------------------------------------
+                              MAIN LOOP
+-----------------------------------------------------------------------*/
+
 int main(void)
 {
   IOInit();
@@ -200,26 +301,69 @@ int main(void)
   LCD_Clear();
   CQueueInit(&evbuff, 10);
   LCD_StrF("Waiting...      ");
-
+  
+  MObj *root = &RootMenu;
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
     switch (mstate)
     {
-    case WAIT:
+      //--------------------------------------------------------------
+      case WAIT:
       switch (event)
       {
       case EV_LONG:
         mstate = WORK;
         ledstate = 0;
         CQueueInit(&evbuff, 10);
-        LCD_StrF("Working...        ");
+        LCD_StrF("Working...      ");
         break;
       default:
         break;
       }
       break;
-    case WORK:
+    //--------------------------------------------------------------
+    case MENU:
+      if (root == NULL)
+      {
+        mstate = WORK;
+        LCD_StrF("Working...      ");
+        break;
+      }
+
+      switch (event)
+      {
+      case EV_NONE:
+        LedsWrite(ledstate);
+        break;
+      case EV_LEFT:
+        MO_Left(root);
+        LCD_StrF(MO_Repr(root));
+        break;
+      case EV_RGHT:
+        MO_Right(root);
+        LCD_StrF(MO_Repr(root));
+        break;
+      case EV_IACT:
+        root = MO_Back(root);
+        LCD_StrF(MO_Repr(root));
+        break;
+      case EV_PUSH:
+        root = MO_Push(root);
+        LCD_StrF(MO_Repr(root));
+        break;
+      case EV_TTCK:
+        ledstate = progs[curr].arr[idx];
+        idx = (idx + 1) % progs[curr].size;
+        break;
+      case EV_LONG:
+        break;
+      default:
+        break;
+      }
+      break;
+    //--------------------------------------------------------------
+    case WORK:     
       switch (event)
       {
       case EV_NONE:
@@ -245,15 +389,15 @@ int main(void)
         idx = (idx + 1) % progs[curr].size;
         break;
       case EV_LONG:
-        mstate = WAIT;
-        ledstate = 0;
-        LedsWrite(ledstate);
-        LCD_StrF("Waiting...      ");
+        mstate =  MENU;
+        root = &RootMenu;
+        LCD_StrF(MO_Repr(root));
         break;
       default:
         break;
       }
       break;
+      //--------------------------------------------------------------
     }
   }
 }
