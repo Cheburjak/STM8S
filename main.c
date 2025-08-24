@@ -7,11 +7,13 @@
 #include "menu.h"
 #include <stdbool.h>
 
-const char *dtitle = "   MAIN  MENU   ";
-const char *empty = "                ";
-
 #define NULL 0
 #define _countof(ARR) (sizeof(ARR) / sizeof(ARR[0]))
+
+const char *dtitle = "   MAIN  MENU   ";
+const char *empty = "                ";
+const char *swaiting = "  ..waiting...  ";
+const char *sworking = "  ..working...  ";
 
 #define ENLEFT PRB(ENCR_LEFT_PORT, IDR, ENCR_LEFT_BIT)
 #define ENRGHT PRB(ENCR_RGHT_PORT, IDR, ENCR_RGHT_BIT)
@@ -84,95 +86,61 @@ state_t mstate = WAIT;
 unsigned char ledstate = 0;
 unsigned char step = SPDMIN;
 int iact_counter = 0;
+value_t working;
 
 /*---------------------------------------------------------------------
                               MAIN MENU
 -----------------------------------------------------------------------*/
 
-struct
-{
-  value_t val1;
-  value_t val2;
-  value_t val3;
-  value_t val4;
-  value_t working;
-} values = {5, 25, 35, 55, 2};
+MObj root_menu, config_menu;
+MObj speed_slider, prog_slider, sleep_combo;
 
-MObj RootMenu, Menu1, Menu2;
-MObj Slider1, Slider2, Slider3, Slider4, TextCombo;
+MItem root_menu_items[] =
+    {{"|    Config    |", .child = &config_menu},
+     {"|   Go sleep   |", .child = &sleep_combo}};
 
-MItem RootMenuItems[] =
-    {{"|    Menu1     |", .child = &Menu1},
-     {"|    Menu2     |", .child = &Menu2},
-     {"|   Go sleep   |", .child = &TextCombo}};
+MItem config_menu_items[] =
+    {{"|    Speed     |", .child = &speed_slider},
+     {"|   Program    |", .child = &prog_slider}};
 
-MItem Menu1Items[] =
-    {{"|   Option1    |", .child = &Slider1},
-     {"|   Option2    |", .child = &Slider2}};
-
-MItem Menu2Items[] =
-    {{"|   Option3    |", .child = &Slider3},
-     {"|   Option4    |", .child = &Slider4}};
-
-MItem Menu3TextCombo[] =
+MItem sleep_combo_items[] =
     {{"<     YES      >", .value = 0},
      {"<     NO       >", .value = 1}};
 
-MObj TextCombo = {
+MObj root_menu = {
+    .type = TMENU,
+    .items = root_menu_items,
+    .curr = 0,
+    .size = _countof(root_menu_items),
+    .parent = NULL};
+
+MObj config_menu = {
+    .type = TMENU,
+    .items = config_menu_items,
+    .curr = 0,
+    .size = _countof(config_menu_items),
+    .parent = NULL};
+
+MObj sleep_combo = {
     .type = TCOMBO,
-    .items = Menu3TextCombo,
+    .items = sleep_combo_items,
     .curr = 0,
-    .size = _countof(Menu3TextCombo),
-    .true_value = &values.working,
+    .size = _countof(sleep_combo_items),
+    .true_value = &working,
     .parent = NULL};
 
-MObj RootMenu = {
-    .type = TMENU,
-    .items = RootMenuItems,
-    .curr = 0,
-    .size = _countof(RootMenuItems),
-    .parent = NULL};
-
-MObj Menu1 = {
-    .type = TMENU,
-    .items = Menu1Items,
-    .curr = 0,
-    .size = _countof(Menu1Items),
-    .parent = NULL};
-
-MObj Menu2 = {
-    .type = TMENU,
-    .items = Menu2Items,
-    .curr = 0,
-    .size = _countof(Menu2Items),
-    .parent = NULL};
-
-MObj Slider1 = {
+MObj speed_slider = {
     .type = TSLIDER,
-    .true_value = &values.val1,
+    .true_value = &step,
+    .min_bound = SPDMIN,
+    .max_bound = SPDMAX,
+    .parent = NULL};
+
+MObj prog_slider = {
+    .type = TSLIDER,
+    .true_value = &curr,
     .min_bound = 0,
-    .max_bound = 10,
-    .parent = NULL};
-
-MObj Slider2 = {
-    .type = TSLIDER,
-    .true_value = &values.val2,
-    .min_bound = 20,
-    .max_bound = 80,
-    .parent = NULL};
-
-MObj Slider3 = {
-    .type = TSLIDER,
-    .true_value = &values.val3,
-    .min_bound = 30,
-    .max_bound = 90,
-    .parent = NULL};
-
-MObj Slider4 = {
-    .type = TSLIDER,
-    .true_value = &values.val4,
-    .min_bound = 50,
-    .max_bound = 75,
+    .max_bound = _countof(progs) - 1,
     .parent = NULL};
 
 /*---------------------------------------------------------------------*/
@@ -299,9 +267,9 @@ int main(void)
   CQueueInit(&evbuff, 10);
   LCD_Init();
   LCD_Clear();
-  LCD_StrS(" ... Waiting ...");
+  LCD_WriteS(swaiting, empty);
 
-  MObj *root = &RootMenu;
+  MObj *root = &root_menu;
   while (1)
   {
     event_t event = (event_t)CQueuePop(&evbuff, EV_NONE);
@@ -315,8 +283,7 @@ int main(void)
         mstate = WORK;
         ledstate = 0;
         CQueueInit(&evbuff, 10);
-        LCD_Clear();
-        LCD_StrS(" ... Working ...");
+        LCD_WriteS(sworking, empty);
         break;
       default:
         break;
@@ -324,15 +291,6 @@ int main(void)
       break;
     //------------------------------MENU STATE------------------------
     case MENU:
-
-      if (root == NULL)
-      {
-        mstate = WORK;
-        LCD_Clear();
-        LCD_StrS(" ... Working ... ");
-        break;
-      }
-
       switch (event)
       {
       case EV_NONE:
@@ -340,34 +298,29 @@ int main(void)
         break;
       case EV_LEFT:
         MO_Left(root);
-        LCD_StrF(MO_Title(root, dtitle));
-        LCD_StrS(MO_Repr(root));
+        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
         break;
       case EV_RGHT:
         MO_Right(root);
-        LCD_StrF(MO_Title(root, dtitle));
-        LCD_StrS(MO_Repr(root));
+        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
         break;
       case EV_IACT:
         root = MO_Back(root);
-        LCD_StrF(MO_Title(root, dtitle));
-        LCD_StrS(MO_Repr(root));
+        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
         break;
       case EV_PUSH:
         root = MO_Push(root);
-        if (values.working == 0)
+        if (working == 0)
         {
-          values.working = 1;
+          working = 1;
           mstate = WAIT;
           ledstate = 0;
           LedsWrite(ledstate);
-          LCD_Clear();
-          LCD_StrS(" ... Waiting ... ");
+          LCD_WriteS(swaiting, empty);
         }
         else
         {
-          LCD_StrF(MO_Title(root, dtitle));
-          LCD_StrS(MO_Repr(root));
+          LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
         }
         break;
       case EV_TTCK:
@@ -377,6 +330,12 @@ int main(void)
       case EV_LONG:
         break;
       default:
+        break;
+      }
+      if (root == NULL)
+      {
+        mstate = WORK;
+        LCD_WriteS(sworking, empty);
         break;
       }
       break;
@@ -408,9 +367,8 @@ int main(void)
         break;
       case EV_LONG:
         mstate = MENU;
-        root = &RootMenu;
-        LCD_StrF(MO_Title(root, dtitle));
-        LCD_StrS(MO_Repr(root));
+        root = &root_menu;
+        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
         break;
       default:
         break;
