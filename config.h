@@ -2,6 +2,10 @@
 
 #define FQ_2MHZ
 
+#define SPDMAX 128
+#define SPDMIN 3
+#define LEDS_PC 5
+
 #define LCD_RS_PORT B
 #define LCD_RS_BIT  2
 

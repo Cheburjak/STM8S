@@ -1,53 +1,26 @@
+#include "iostm8s105k4.h"
 #include "config.h"
 #include "naming.h"
-#include "iostm8s105k4.h"
 #include "delay.h"
 #include "lcd.h"
 #include "CQueue.h"
 #include "menu.h"
+#include "leds.h"
 #include <stdbool.h>
 
-#define NULL 0
 #define _countof(ARR) (sizeof(ARR) / sizeof(ARR[0]))
-
-const char *dtitle = "   MAIN  MENU   ";
-const char *empty = "                ";
-const char *swaiting = "  ..waiting...  ";
-const char *sworking = "  ..working...  ";
+#define NULL 0
+#define GOAL 0xFF
+#define PUSHTIME 0x64
+#define IACTTIME 0x13E
 
 #define ENLEFT PRB(ENCR_LEFT_PORT, IDR, ENCR_LEFT_BIT)
 #define ENRGHT PRB(ENCR_RGHT_PORT, IDR, ENCR_RGHT_BIT)
 #define ENPUSH PRB(ENCR_PUSH_PORT, IDR, ENCR_PUSH_BIT)
 
-#define LED0 PRB(LED1_PORT, ODR, LED1_BIT)
-#define LED1 PRB(LED2_PORT, ODR, LED2_BIT)
-#define LED2 PRB(LED3_PORT, ODR, LED3_BIT)
-#define LED3 PRB(LED4_PORT, ODR, LED4_BIT)
-#define LED4 PRB(LED5_PORT, ODR, LED5_BIT)
-
-unsigned char prog1[] = {1, 2, 4, 8, 16, 32, 64, 128};
-unsigned char prog2[] = {128, 64, 32, 16, 8, 4, 2, 1};
-unsigned char prog3[] = {1, 3, 7, 15, 31, 63, 127, 255, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0};
-unsigned char prog4[] = {255, 127, 63, 31, 15, 7, 3, 1, 3, 7, 15, 31, 63, 127, 255, 0};
-unsigned char prog5[] = {
-    1, 2, 4, 8, 16, 32, 64, 128,
-    128, 64, 32, 16, 8, 4, 2, 1,
-    1, 3, 7, 15, 31, 63, 127, 255,
-    255, 127, 63, 31, 15, 7, 3, 1};
-
-struct
-{
-  unsigned char *arr;
-  unsigned char size;
-} progs[] = {
-    {prog1, _countof(prog1)},
-    {prog2, _countof(prog2)},
-    {prog3, _countof(prog3)},
-    {prog4, _countof(prog4)},
-    {prog5, _countof(prog5)},
-};
-unsigned char idx = 0;
-unsigned char curr = 0;
+const char *empty = "                ";
+const char *swaiting = "  ..waiting...  ";
+const char *sworking = "  ..working...  ";
 
 enum
 {
@@ -67,26 +40,22 @@ typedef enum
   EV_IACT      // INACTIVE
 } event_t;
 
-typedef enum
+enum
 {
   WORK = 0,
   WAIT,
   MENU
-} state_t;
+} mstate = WAIT;
 
-// GLOBALS
-#define SPDMAX 96
-#define SPDMIN 3
-#define GOAL 0xFF
-#define PUSHTIME 0x64
-#define IACTTIME 0x13E
+
+extern unsigned char led_prog;
+extern unsigned char led_state;
+extern unsigned char led_speed;
+
 
 CQueue evbuff;
-state_t mstate = WAIT;
-unsigned char ledstate = 0;
-unsigned char step = SPDMIN;
 int iact_counter = 0;
-value_t working;
+value_t working = 1;
 
 /*---------------------------------------------------------------------
                               MAIN MENU
@@ -131,16 +100,16 @@ MObj sleep_combo = {
 
 MObj speed_slider = {
     .type = TSLIDER,
-    .true_value = &step,
+    .true_value = &led_speed,
     .min_bound = SPDMIN,
     .max_bound = SPDMAX,
     .parent = NULL};
 
 MObj prog_slider = {
     .type = TSLIDER,
-    .true_value = &curr,
+    .true_value = &led_prog,
     .min_bound = 0,
-    .max_bound = _countof(progs) - 1,
+    .max_bound = LEDS_PC - 1,
     .parent = NULL};
 
 /*---------------------------------------------------------------------*/
@@ -204,7 +173,7 @@ __interrupt void Timer4Hundler(void)
     lcounter = 0;
   }
 
-  counter += step;
+  counter += led_speed;
   if (counter >= GOAL)
   {
     counter = 0;
@@ -215,24 +184,11 @@ __interrupt void Timer4Hundler(void)
 
 void IOInit()
 {
-  // CONFIG LED PINS
-  PRB(LED1_PORT, DDR, LED1_BIT) = 1;
-  PRB(LED2_PORT, DDR, LED2_BIT) = 1;
-  PRB(LED3_PORT, DDR, LED3_BIT) = 1;
-  PRB(LED4_PORT, DDR, LED4_BIT) = 1;
-  PRB(LED5_PORT, DDR, LED5_BIT) = 1;
-
-  PCRB(LED1_PORT, CR1, LED1_BIT) = 1;
-  PCRB(LED2_PORT, CR1, LED2_BIT) = 1;
-  PCRB(LED3_PORT, CR1, LED3_BIT) = 1;
-  PCRB(LED4_PORT, CR1, LED4_BIT) = 1;
-  PCRB(LED5_PORT, CR1, LED5_BIT) = 1;
-
   // CONFIG ENCODER PINS
   PCRB(ENCR_LEFT_PORT, CR1, ENCR_LEFT_BIT) = 1;
   PCRB(ENCR_RGHT_PORT, CR1, ENCR_RGHT_BIT) = 1;
   PCRB(ENCR_PUSH_PORT, CR1, ENCR_PUSH_BIT) = 1;
-  // INTERRUPTS
+  // CONFIG ENCODER INTERRUPTS
   PCRB(ENCR_LEFT_PORT, CR2, ENCR_LEFT_BIT) = 1;
   PCRB(ENCR_RGHT_PORT, CR2, ENCR_RGHT_BIT) = 1;
   PCRB(ENCR_PUSH_PORT, CR2, ENCR_PUSH_BIT) = 1;
@@ -248,14 +204,6 @@ void IOInit()
   asm("rim");
 }
 
-void LedsWrite(unsigned char state)
-{
-  LED0 = (state & 1 << 0) && 1;
-  LED1 = (state & 1 << 1) && 1;
-  LED2 = (state & 1 << 2) && 1;
-  LED3 = (state & 1 << 3) && 1;
-  LED4 = (state & 1 << 4) && 1;
-}
 
 /*---------------------------------------------------------------------
                               MAIN LOOP
@@ -263,11 +211,15 @@ void LedsWrite(unsigned char state)
 
 int main(void)
 {
-  IOInit();
   CQueueInit(&evbuff, 10);
+  IOInit();
+  
+  LEDS_Init();
+  LEDS_Clear(); 
+
   LCD_Init();
   LCD_Clear();
-  LCD_WriteS(swaiting, empty);
+  LCD_WriteS(swaiting, NULL);
 
   MObj *root = &root_menu;
   while (1)
@@ -281,7 +233,6 @@ int main(void)
       {
       case EV_LONG:
         mstate = WORK;
-        ledstate = 0;
         CQueueInit(&evbuff, 10);
         LCD_WriteS(sworking, empty);
         break;
@@ -294,38 +245,37 @@ int main(void)
       switch (event)
       {
       case EV_NONE:
-        LedsWrite(ledstate);
+        LEDS_Write();
         break;
       case EV_LEFT:
         MO_Left(root);
-        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
+        LCD_WriteS(MO_Title(root), MO_Repr(root));
         break;
       case EV_RGHT:
         MO_Right(root);
-        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
+        LCD_WriteS(MO_Title(root), MO_Repr(root));
         break;
       case EV_IACT:
         root = MO_Back(root);
-        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
+        LCD_WriteS(MO_Title(root), MO_Repr(root));
         break;
       case EV_PUSH:
         root = MO_Push(root);
         if (working == 0)
         {
-          working = 1;
-          mstate = WAIT;
-          ledstate = 0;
-          LedsWrite(ledstate);
+          LEDS_Clear();
+          LEDS_Write();
           LCD_WriteS(swaiting, empty);
+          mstate = WAIT;
+          working = 1;
         }
         else
         {
-          LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
+          LCD_WriteS(MO_Title(root), MO_Repr(root));
         }
         break;
       case EV_TTCK:
-        ledstate = progs[curr].arr[idx];
-        idx = (idx + 1) % progs[curr].size;
+        LEDS_Next();
         break;
       case EV_LONG:
         break;
@@ -344,31 +294,26 @@ int main(void)
       switch (event)
       {
       case EV_NONE:
-        LedsWrite(ledstate);
+        LEDS_Write();
         break;
       case EV_LEFT:
-        step -= 2;
-        step = step < SPDMIN ? SPDMIN : step;
+        LEDS_SpeedDown();
         break;
       case EV_RGHT:
-        step += 2;
-        step = step > SPDMAX ? SPDMAX : step;
+        LEDS_SpeedUp();
         break;
       case EV_IACT:
-        // ledstate = 0xFF;
         break;
       case EV_PUSH:
-        curr = (curr + 1) % _countof(progs);
-        idx = 0;
+        LEDS_NextP();
         break;
       case EV_TTCK:
-        ledstate = progs[curr].arr[idx];
-        idx = (idx + 1) % progs[curr].size;
+        LEDS_Next();
         break;
       case EV_LONG:
         mstate = MENU;
         root = &root_menu;
-        LCD_WriteS(MO_Title(root, dtitle), MO_Repr(root));
+        LCD_WriteS(MO_Title(root), MO_Repr(root));
         break;
       default:
         break;

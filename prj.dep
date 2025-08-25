@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
     <fileVersion>4</fileVersion>
-    <fileChecksum>3994065417</fileChecksum>
+    <fileChecksum>1077499026</fileChecksum>
     <configuration>
         <name>Debug</name>
         <outputs>
@@ -34,9 +34,13 @@
             <file>$PROJ_DIR$\Debug\Obj\menu.__cstat.et</file>
             <file>$TOOLKIT_DIR$\lib\dbgstm8smd.a</file>
             <file>$TOOLKIT_DIR$\inc\c\stdbool.h</file>
+            <file>$PROJ_DIR$\leds.h</file>
+            <file>$PROJ_DIR$\leds.c</file>
             <file>$PROJ_DIR$\lcd.c</file>
             <file>$PROJ_DIR$\Debug\Obj\lcd.xcl</file>
             <file>$PROJ_DIR$\Debug\Obj\lcd.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\leds.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\leds.xcl</file>
         </outputs>
         <file>
             <name>[ROOT_NODE]</name>
@@ -89,7 +93,7 @@
             <inputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 3 7 10 2 9 1 4 6 28</file>
+                    <file> 10 2 3 7 9 1 4 6 29 28</file>
                 </tool>
             </inputs>
         </file>
@@ -127,7 +131,7 @@
             <inputs>
                 <tool>
                     <name>ILINK</name>
-                    <file> 23 14 31 8 11 19 27</file>
+                    <file> 23 14 33 34 8 11 19 27</file>
                 </tool>
             </inputs>
         </file>
@@ -141,15 +145,34 @@
             </outputs>
         </file>
         <file>
+            <name>$PROJ_DIR$\leds.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCSTM8</name>
+                    <file> 34</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 35</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>ICCSTM8</name>
+                    <file> 3 7 10 2</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
             <name>$PROJ_DIR$\lcd.c</name>
             <outputs>
                 <tool>
                     <name>ICCSTM8</name>
-                    <file> 31</file>
+                    <file> 33</file>
                 </tool>
                 <tool>
                     <name>BICOMP</name>
-                    <file> 30</file>
+                    <file> 32</file>
                 </tool>
             </outputs>
             <inputs>

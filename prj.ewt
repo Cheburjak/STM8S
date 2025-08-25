@@ -2172,6 +2172,12 @@
         <name>$PROJ_DIR$\lcd.h</name>
     </file>
     <file>
+        <name>$PROJ_DIR$\leds.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\leds.h</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\main.c</name>
     </file>
     <file>

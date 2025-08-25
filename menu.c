@@ -1,5 +1,7 @@
 #include "menu.h"
+
 #define NULL 0
+static const char *Default = "   MAIN  MENU   ";
 
 static void toStr(char *buff, value_t val)
 {
@@ -41,7 +43,7 @@ const char *MO_Repr(MObj *this)
     return NULL;
 }
 
-const char *MO_Title(MObj *this, const char * Default)
+const char *MO_Title(MObj *this)
 {
     return this->parent ? MO_Repr(this->parent) : Default;
 }
