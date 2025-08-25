@@ -355,7 +355,7 @@ int main(void)
         step = step > SPDMAX ? SPDMAX : step;
         break;
       case EV_IACT:
-        ledstate = 0xFF;
+        // ledstate = 0xFF;
         break;
       case EV_PUSH:
         curr = (curr + 1) % _countof(progs);

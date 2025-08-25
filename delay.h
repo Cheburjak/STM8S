@@ -148,7 +148,7 @@
 
 //-----------------------------------------
 #ifdef BUSYCOUNT
-void delay_ms(int ms)
+static void delay_ms(int ms)
 {
   while (ms)
   {
